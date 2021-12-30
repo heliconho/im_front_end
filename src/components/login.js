@@ -10,8 +10,8 @@ export default function Login() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [loading, setLoading] = useState(false);
-
-    const {setToken, setLoginStatus} = useStore();
+    
+    let {setToken, setLoginStatus,setUserEmail} = useStore();
     const tokenValue = useStore((state) => state.token);
     const loginStatus = useStore((state) => state.loginStatus);
 
@@ -19,26 +19,39 @@ export default function Login() {
         return email.length > 0 && password.length > 0
     }
     const loginFunction = async (email,password) =>{
+        // let data = JSON.stringify({
+        //     "email": email,
+        //     "password": password
+        //   });
         let data = JSON.stringify({
-            "Email": email,
-            "Password": password
+            "email": email,
+            "password": password
           });
-          console.log(data);
-
-          let output;
+          
+          let config = {
+            method: 'post',
+            url: 'http://localhost:3000/api/auth/login',
+            headers: { 
+              'Content-Type': 'application/json'
+            },
+            data : data
+          };
           try{
-            axios.post('https://im-app-ynh.herokuapp.com/api/v1/user/login',data)
+            axios(config)
             .then(function (response) {
-              output = response.data;
-              output['msg'] === 'Login Success' ? setToken(output['token']) : setToken("");
-              output['msg'] === 'Login Success' ? setLoginStatus(true) : setLoginStatus(false);
+            if (response.status === 200){
+                setLoginStatus(true)
+                setUserEmail(email)
+                setToken(response.data['token'])
+            } else {
+                setLoginStatus(false)
+            } 
+                
             })
           }
           catch(error){
             console.log(error);
-            output = error;
           };
-          return output;
     }
     
     const handleSubmit = async (event) => {
@@ -46,15 +59,17 @@ export default function Login() {
         setLoading(true);
         try{
             await loginFunction(email,password);
-            setLoading(false);
-            if (loginStatus === true) 
-                navigate("/");
+            setLoading(false)
+            console.log(tokenValue)
+            if(tokenValue!== "") navigate("/")
         }
         catch(error){
             console.log(error)
             setLoading(false);
         }
     }
+
+     
 
     return(
         <div className="login_form">
@@ -79,11 +94,6 @@ export default function Login() {
                     Login
                 </Button>
             </Form>
-            <div className='login_form'>
-                <div className='alert_danger' role='alert'>
-                    {loginStatus?tokenValue:"Login Failed"}
-                </div>
-            </div>
         </div>
     );
 }
